@@ -10,7 +10,7 @@
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { WORK_DIR, arg, defaultBase, changedFiles, fileHash } from '../lib/util.mjs';
+import { WORK_DIR, config, arg, defaultBase, changedFiles, fileHash } from '../lib/util.mjs';
 
 const ctxPath = join(WORK_DIR, 'context.json');
 const ctx = existsSync(ctxPath) && !arg('no-context') ? JSON.parse(readFileSync(ctxPath, 'utf8')) : null;
@@ -18,7 +18,10 @@ const base = arg('base', ctx?.base ?? defaultBase());
 const strict = Boolean(arg('strict', false));
 
 // Gate the files this run changed, not the product change that triggered it.
-const files = changedFiles(base).filter((f) => !(ctx?.snapshot[f] && ctx.snapshot[f] === fileHash(f)));
+// Content gates look at docs pages only; the scope gate checks every path itself.
+const files = changedFiles(base)
+  .filter((f) => f.startsWith(`${config.docsDir}/`))
+  .filter((f) => !(ctx?.snapshot[f] && ctx.snapshot[f] === fileHash(f)));
 
 const GATES = ['scope', 'frontmatter', 'mdx-parse', 'symbol', 'placeholder', 'links', 'verify-flags', 'vale'];
 const findings = [];

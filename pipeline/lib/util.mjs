@@ -10,7 +10,7 @@ export const WORK_DIR = join(ROOT, '.pipeline');
 
 export const config = JSON.parse(readFileSync(join(ROOT, 'docs-pipeline.config.json'), 'utf8'));
 
-export const git = (...args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+export const git = (...args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] });
 
 export function arg(name, dflt) {
   const i = process.argv.findIndex((a) => a === `--${name}` || a.startsWith(`--${name}=`));

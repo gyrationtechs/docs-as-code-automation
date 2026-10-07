@@ -42,7 +42,7 @@ export function run({ files, base }) {
         for (const m of code.matchAll(/\.([A-Za-z_$][\w$]*)/g)) idents.add(m[1]);
         for (const m of code.matchAll(/([A-Za-z_$][\w$]*)\s*:(?!:)/g)) idents.add(m[1]);
         for (const id of idents) {
-          if (id.length < 3 || STOP.has(id) || JS_WORDS.has(id)) continue;
+          if (id.length < 3 || STOP.has(id) || JS_WORDS.has(id) || /^[A-Z0-9_]+$/.test(id)) continue; // env vars
           if (new RegExp(`\\b${id}\\b`).test(hay)) continue;
           findings.push({ gate: 'symbol', level: 'blocking', path, message: `'${id}' is not in ${config.sourceDir}; if you cannot grep it in the source, it does not exist` });
         }

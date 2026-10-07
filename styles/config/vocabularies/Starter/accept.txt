@@ -2,7 +2,7 @@ Acme
 Mintlify
 Docusaurus
 SDK
-webhooks?
+(?i)webhooks?
 cURL
 JavaScript
 Node\.js

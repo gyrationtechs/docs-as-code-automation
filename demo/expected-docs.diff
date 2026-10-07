@@ -1,0 +1,143 @@
+diff --git a/docs/changelog.mdx b/docs/changelog.mdx
+index e1b1aac..f3a41ae 100644
+--- a/docs/changelog.mdx
++++ b/docs/changelog.mdx
+@@ -4,6 +4,12 @@ description: "Release notes for the Acme Mail Node.js SDK: new methods, options
+ rss: true
+ ---
+ 
++<Update label="2026-10-07" description="v1.3.0">
++  ### Node.js SDK
++
++  Added `scheduledAt` to `messages.send()` so you can schedule an email up to 72 hours ahead. Added `messages.cancel()` to cancel a scheduled message before it is sent.
++</Update>
++
+ <Update label="2026-09-15" description="v1.2.0">
+   ### Node.js SDK
+ 
+diff --git a/docs/guides/send-email.mdx b/docs/guides/send-email.mdx
+index 35a0574..b0cd639 100644
+--- a/docs/guides/send-email.mdx
++++ b/docs/guides/send-email.mdx
+@@ -64,6 +64,68 @@ await client.messages.send({
+ });
+ ```
+ 
++## Schedule an Email
++
++Pass `scheduledAt` to `client.messages.send()` to send the message later. Use an ISO 8601 timestamp string or a `Date`.
++
++**Prerequisites:** the SDK is installed and `ACME_MAIL_API_KEY` is set. See the [quickstart](/quickstart).
++
++```js JavaScript
++import { AcmeMail } from '@acme/mail';
++
++const client = new AcmeMail(process.env.ACME_MAIL_API_KEY);
++
++const { messageId, status } = await client.messages.send({
++  from: 'you@example.com',
++  to: 'friend@example.com',
++  subject: 'Your weekly summary',
++  text: 'Here is what happened this week.',
++  scheduledAt: new Date(Date.now() + 60 * 60 * 1000),
++});
++```
++
++A successful call returns a `messageId` and a `status` of `scheduled`. Store the `messageId` if you might cancel the message.
++
++<Note>
++`scheduledAt` must be at least 1 minute and at most 72 hours from now. The SDK throws an error before sending if the time is outside that window or is not a valid date.
++</Note>
++
++## Cancel a Scheduled Email
++
++Call `client.messages.cancel()` with the `messageId` that `send()` returned for a message sent with `scheduledAt`.
++
++**Prerequisites:** the SDK is installed and `ACME_MAIL_API_KEY` is set. See the [quickstart](/quickstart).
++
++```js JavaScript
++import { AcmeMail, AcmeMailError } from '@acme/mail';
++
++const client = new AcmeMail(process.env.ACME_MAIL_API_KEY);
++
++const { messageId } = await client.messages.send({
++  from: 'you@example.com',
++  to: 'friend@example.com',
++  subject: 'Your weekly summary',
++  text: 'Here is what happened this week.',
++  scheduledAt: new Date(Date.now() + 60 * 60 * 1000),
++});
++
++try {
++  const result = await client.messages.cancel(messageId);
++  console.log(result.status);
++} catch (error) {
++  if (error instanceof AcmeMailError && error.code === 'already_sent') {
++    console.error('The send time has passed. The message can no longer be canceled.');
++  }
++}
++```
++
++A successful call returns the `messageId` and a `status` of `canceled`.
++
++<Warning>
++You cannot cancel a message after its send time passes. The call throws an `AcmeMailError` with `status` 409 and `code` `already_sent`.
++</Warning>
++{/* VERIFY: The API returns HTTP 409 with code `already_sent` when `cancel()` is called after the scheduled send time. */}
++
+ ## Handle Errors
+ 
+ Failed requests throw an `AcmeMailError` with the HTTP `status` and an API error `code`.
+diff --git a/docs/sdk/messages.mdx b/docs/sdk/messages.mdx
+index 2ea6a03..adb20f1 100644
+--- a/docs/sdk/messages.mdx
++++ b/docs/sdk/messages.mdx
+@@ -8,10 +8,10 @@ keywords: ["messages", "send", "get", "sdk reference"]
+ 
+ ## send
+ 
+-Sends an email and returns once the message is queued.
++Sends an email and returns once the message is queued or scheduled.
+ 
+ ```js JavaScript
+-client.messages.send({ from, to, subject, html, text, tags })
++client.messages.send({ from, to, subject, html, text, tags, scheduledAt })
+ ```
+ 
+ | Parameter | Type | Required | Description |
+@@ -22,8 +22,28 @@ client.messages.send({ from, to, subject, html, text, tags })
+ | `html` | `string` | One of `html` or `text` | HTML body |
+ | `text` | `string` | One of `html` or `text` | Plain-text body |
+ | `tags` | `string[]` | No | Up to 5 tags for filtering events |
++| `scheduledAt` | `string` or `Date` | No | Send later: an ISO 8601 timestamp or `Date`, at least 1 minute and at most 72 hours from now |
+ 
+-**Returns:** `Promise<{ messageId: string, status: 'queued' }>`
++**Returns:** `Promise<{ messageId: string, status: 'queued' | 'scheduled' }>`
++
++The SDK throws an error before sending if `scheduledAt` is not a valid date or falls outside the 1 minute to 72 hour window.
++
++## cancel
++
++Cancels a scheduled message before it is sent.
++
++```js JavaScript
++client.messages.cancel(messageId)
++```
++
++| Parameter | Type | Required | Description |
++|---|---|---|---|
++| `messageId` | `string` | Yes | The ID returned by `send()` with `scheduledAt` |
++
++**Returns:** `Promise<{ messageId: string, status: 'canceled' }>`
++
++**Throws:** `AcmeMailError` with `status` 409 and `code` `already_sent` if the send time has passed.
++{/* VERIFY: The API returns HTTP 409 with code `already_sent` when `cancel()` is called after the scheduled send time. */}
+ 
+ ## get
+ 
+@@ -37,4 +57,4 @@ client.messages.get(messageId)
+ |---|---|---|---|
+ | `messageId` | `string` | Yes | The ID returned by `send()` |
+ 
+-**Returns:** `Promise<{ messageId: string, status: 'queued' | 'sent' | 'delivered' | 'bounced' }>`
++**Returns:** `Promise<{ messageId: string, status: 'scheduled' | 'queued' | 'sent' | 'delivered' | 'bounced' | 'canceled' }>`

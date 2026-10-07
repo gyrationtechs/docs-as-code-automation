@@ -1,0 +1,21 @@
+name: Agent readiness score
+
+# Scores the published docs against the Agent-Friendly Documentation Spec
+# with AFDocs (https://afdocs.dev). Set the DOCS_URL repository variable.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 8 * * 1'   # Mondays 08:00 UTC
+
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: AFDocs scorecard
+        run: |
+          npx -y afdocs@latest check "${{ vars.DOCS_URL }}" --format scorecard | tee scorecard.txt
+          { echo '```'; cat scorecard.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

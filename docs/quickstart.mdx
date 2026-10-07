@@ -1,0 +1,42 @@
+---
+title: "Quickstart"
+description: "Install the Acme Mail Node.js SDK, set your API key, and send your first email."
+keywords: ["install", "api key", "first email"]
+---
+
+This guide takes you from an empty project to a sent email.
+
+**Prerequisites:** Node.js 18 or later and an Acme Mail API key.
+
+## Install the SDK
+
+```bash Terminal
+npm install @acme/mail
+```
+
+## Set Your API Key
+
+Store the key in an environment variable. Never commit it to source control.
+
+```bash Terminal
+export ACME_MAIL_API_KEY="YOUR_API_KEY"
+```
+
+## Send Your First Email
+
+```js send.js
+import { AcmeMail } from '@acme/mail';
+
+const client = new AcmeMail(process.env.ACME_MAIL_API_KEY);
+
+const result = await client.messages.send({
+  from: 'you@example.com',
+  to: 'friend@example.com',
+  subject: 'Hello from Acme Mail',
+  text: 'It works.',
+});
+
+console.log(result.messageId);
+```
+
+A successful call returns a `messageId` and a `status` of `queued`.

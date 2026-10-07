@@ -1,0 +1,38 @@
+---
+title: "Webhooks"
+description: "Reference for client.webhooks in the Acme Mail Node.js SDK: create(), list() and delete()."
+keywords: ["webhooks", "create", "list", "delete", "sdk reference"]
+---
+
+`client.webhooks` manages the endpoints that receive delivery events.
+
+## create
+
+```js JavaScript
+client.webhooks.create({ url, events })
+```
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `url` | `string` | Yes | HTTPS endpoint that receives events |
+| `events` | `string[]` | Yes | Any of `delivered`, `bounced`, `opened`, `clicked` |
+
+**Returns:** `Promise<{ webhookId: string, signingSecret: string }>`
+
+## list
+
+```js JavaScript
+client.webhooks.list()
+```
+
+**Returns:** `Promise<Array<{ webhookId: string, url: string, events: string[] }>>`
+
+## delete
+
+```js JavaScript
+client.webhooks.delete(webhookId)
+```
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `webhookId` | `string` | Yes | The ID returned by `create()` |

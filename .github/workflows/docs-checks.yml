@@ -1,0 +1,32 @@
+name: Docs checks
+
+# Runs on every docs PR, human or bot. VERIFY flags block the merge here:
+# a human must resolve each one and delete the comment.
+
+on:
+  pull_request:
+    paths: ['docs/**']
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm ci || npm install
+      - name: Install Vale
+        run: |
+          curl -sfL https://github.com/errata-ai/vale/releases/download/v3.11.2/vale_3.11.2_Linux_64-bit.tar.gz \
+            | sudo tar -xz -C /usr/local/bin vale
+      - name: Gates (strict)
+        run: node pipeline/gates/run-all.mjs --no-context --strict --base "origin/${{ github.base_ref }}" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Mintlify broken links
+        working-directory: docs
+        run: npx -y mint@latest broken-links

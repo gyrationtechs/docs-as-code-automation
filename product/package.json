@@ -1,0 +1,7 @@
+{
+  "name": "@acme/mail",
+  "version": "1.2.0",
+  "description": "Fictional SDK used to demo the docs automation pipeline.",
+  "type": "module",
+  "main": "src/index.js"
+}

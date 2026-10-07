@@ -1,0 +1,9 @@
+extends: existence
+message: "Heading '%s' doesn't name a task. Agents use headings to choose a section."
+level: suggestion
+scope: heading
+tokens:
+  - ^Overview$
+  - ^Next Steps$
+  - ^Introduction$
+  - ^Notes?$

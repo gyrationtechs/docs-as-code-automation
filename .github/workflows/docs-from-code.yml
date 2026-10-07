@@ -1,0 +1,134 @@
+name: Code change → docs PR
+
+# When product source changes on main, an agent drafts the docs update and
+# opens a PR for a human to review. Nothing merges automatically.
+#
+# Secrets:
+#   ANTHROPIC_API_KEY  for the writer and reviewer agents
+#   DOCS_PR_TOKEN      fine-grained PAT (Contents RW, Pull requests RW). A PR
+#                      opened with GITHUB_TOKEN does not trigger other workflows,
+#                      so docs-checks.yml would never run on it.
+
+on:
+  push:
+    branches: [main]
+    paths: ['product/src/**']
+  workflow_dispatch:
+    inputs:
+      base:
+        description: 'Git ref to diff against (blank = the commit before HEAD)'
+        required: false
+      dry_run:
+        description: 'Run everything but do not open a PR'
+        type: boolean
+        default: true
+
+concurrency:
+  group: docs-from-code
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - run: npm ci || npm install
+
+      - name: Install Vale
+        run: |
+          curl -sfL https://github.com/errata-ai/vale/releases/download/v3.11.2/vale_3.11.2_Linux_64-bit.tar.gz \
+            | sudo tar -xz -C /usr/local/bin vale
+
+      - name: 1. Build the work order
+        id: ctx
+        env:
+          BASE: ${{ inputs.base || github.event.before || 'HEAD~1' }}
+        run: |
+          node pipeline/context.mjs --base "$BASE" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "tier=$(jq -r .tier .pipeline/context.json)" >> "$GITHUB_OUTPUT"
+          {
+            echo 'WRITER_PROMPT<<PROMPT_EOF'; node pipeline/render-prompt.mjs update-docs.md; echo 'PROMPT_EOF'
+            echo 'REVIEW_PROMPT<<PROMPT_EOF'; node pipeline/render-prompt.mjs review-docs.md; echo 'PROMPT_EOF'
+          } >> "$GITHUB_ENV"
+
+      # The writer has no network, no git write and no privileged token. The
+      # worst an injected instruction can do is a bad in-scope edit, which the
+      # gates and the human reviewer then catch.
+      - name: 2. Writer agent
+        if: steps.ctx.outputs.tier != 'none'
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}
+          prompt: ${{ env.WRITER_PROMPT }}
+          claude_args: >-
+            --max-turns 50
+            --allowedTools "Read,Glob,Grep,Edit,Write,TodoWrite,Bash(node pipeline/gates/run-all.mjs),Bash(node pipeline/gates/run-all.mjs:*),Bash(git diff:*),Bash(git status:*),Bash(git checkout -- :*)"
+            --disallowedTools "WebFetch,WebSearch,Bash(git push:*),Bash(git commit:*),Bash(gh:*),Bash(curl:*),Bash(rm:*)"
+
+      - name: 3. Gates (blocking)
+        if: steps.ctx.outputs.tier != 'none'
+        run: node pipeline/gates/run-all.mjs | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: 4. Reviewer agent (read-only, fresh context)
+        if: steps.ctx.outputs.tier != 'none'
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}
+          prompt: |
+            ${{ env.REVIEW_PROMPT }}
+
+            When you are done, also write your full reply to .pipeline/review.md.
+          claude_args: >-
+            --max-turns 25
+            --allowedTools "Read,Glob,Grep,Write,Bash(git diff:*),Bash(git status:*)"
+            --disallowedTools "Edit,WebFetch,WebSearch,Bash(git push:*),Bash(gh:*)"
+
+      - name: Build the PR body
+        if: steps.ctx.outputs.tier != 'none'
+        run: |
+          {
+            echo "Automated docs update for \`${{ github.sha }}\`."; echo
+            cat .pipeline/gate-report.md; echo
+            echo '### Reviewer agent'; echo; cat .pipeline/review.md 2>/dev/null || echo '_none_'; echo
+            if [ -f .pipeline/UNRESOLVED.md ]; then echo '### Needs a human decision'; echo; cat .pipeline/UNRESOLVED.md; fi
+            echo; echo '#### Reviewer checklist'
+            echo '- [ ] Every code sample matches the source'
+            echo '- [ ] Every VERIFY flag is resolved and removed'
+            echo '- [ ] The changelog entry is accurate'
+          } > "$RUNNER_TEMP/pr-body.md"
+          cat "$RUNNER_TEMP/pr-body.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pipeline-output
+          path: .pipeline/
+          include-hidden-files: true
+
+      - name: 5. Open the docs PR
+        if: steps.ctx.outputs.tier != 'none' && inputs.dry_run != true
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.DOCS_PR_TOKEN }}
+          branch: docs-bot/${{ github.sha }}
+          add-paths: |
+            docs/**
+            pipeline/learnings.md
+          commit-message: 'docs: update for ${{ github.sha }}'
+          title: 'Docs: update for the latest product change'
+          body-path: ${{ runner.temp }}/pr-body.md
+          labels: |
+            documentation
+            ai-draft

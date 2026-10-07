@@ -1,0 +1,81 @@
+---
+title: "Send an Email"
+description: "Send a transactional email with the Acme Mail Node.js SDK, including multiple recipients, HTML bodies and tags."
+keywords: ["send email", "messages.send", "recipients", "tags"]
+---
+
+Use `client.messages.send()` to send an email. The call returns as soon as Acme Mail queues the message.
+
+**Prerequisites:** the SDK is installed and `ACME_MAIL_API_KEY` is set. See the [quickstart](/quickstart).
+
+## Send a Basic Email
+
+<CodeGroup>
+
+```js JavaScript
+import { AcmeMail } from '@acme/mail';
+
+const client = new AcmeMail(process.env.ACME_MAIL_API_KEY);
+
+const { messageId } = await client.messages.send({
+  from: 'you@example.com',
+  to: 'friend@example.com',
+  subject: 'Your receipt',
+  html: '<p>Thanks for your order.</p>',
+  text: 'Thanks for your order.',
+});
+```
+
+```bash cURL
+curl -X POST https://api.acmemail.dev/v1/messages \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"from":"you@example.com","to":["friend@example.com"],"subject":"Your receipt","text":"Thanks for your order."}'
+```
+
+</CodeGroup>
+
+Provide `html`, `text`, or both. The SDK throws an error if both are missing.
+
+## Send to Multiple Recipients
+
+Pass an array to `to`. You can send to up to 50 recipients in one call.
+
+```js JavaScript
+await client.messages.send({
+  from: 'you@example.com',
+  to: ['ana@example.com', 'ben@example.com'],
+  subject: 'Team update',
+  text: 'The release shipped.',
+});
+```
+
+## Tag Messages
+
+Add up to 5 `tags` to filter delivery events later.
+
+```js JavaScript
+await client.messages.send({
+  from: 'you@example.com',
+  to: 'friend@example.com',
+  subject: 'Password reset',
+  text: 'Use this link to reset your password.',
+  tags: ['auth', 'password-reset'],
+});
+```
+
+## Handle Errors
+
+Failed requests throw an `AcmeMailError` with the HTTP `status` and an API error `code`.
+
+```js JavaScript
+import { AcmeMail, AcmeMailError } from '@acme/mail';
+
+try {
+  await client.messages.send({ from: 'you@example.com', to: 'friend@example.com', subject: 'Hi', text: 'Hi' });
+} catch (error) {
+  if (error instanceof AcmeMailError) {
+    console.error(error.status, error.code, error.message);
+  }
+}
+```

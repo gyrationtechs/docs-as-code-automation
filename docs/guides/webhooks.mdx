@@ -1,0 +1,37 @@
+---
+title: "Receive Delivery Events With Webhooks"
+description: "Register an HTTPS endpoint to receive delivered, bounced, opened and clicked events from Acme Mail."
+keywords: ["webhooks", "events", "delivery status"]
+---
+
+Webhooks send an HTTP `POST` to your endpoint each time a message changes state.
+
+**Prerequisites:** a public HTTPS endpoint. Acme Mail rejects `http://` URLs.
+
+## Register an Endpoint
+
+```js JavaScript
+const { webhookId, signingSecret } = await client.webhooks.create({
+  url: 'https://example.com/acme/events',
+  events: ['delivered', 'bounced'],
+});
+```
+
+Store the `signingSecret`. You need it to verify that events come from Acme Mail.
+
+## Supported Events
+
+| Event | Sent When |
+|---|---|
+| `delivered` | The receiving server accepted the message |
+| `bounced` | The receiving server rejected the message |
+| `opened` | The recipient opened the message |
+| `clicked` | The recipient clicked a tracked link |
+
+## List and Delete Endpoints
+
+```js JavaScript
+const webhooks = await client.webhooks.list();
+
+await client.webhooks.delete(webhooks[0].webhookId);
+```

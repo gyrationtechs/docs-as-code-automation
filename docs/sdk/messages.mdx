@@ -1,0 +1,40 @@
+---
+title: "Messages"
+description: "Reference for client.messages in the Acme Mail Node.js SDK: send() and get(), with parameters and return values."
+keywords: ["messages", "send", "get", "sdk reference"]
+---
+
+`client.messages` sends email and looks up message status.
+
+## send
+
+Sends an email and returns once the message is queued.
+
+```js JavaScript
+client.messages.send({ from, to, subject, html, text, tags })
+```
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `from` | `string` | Yes | Sender address on a verified domain |
+| `to` | `string` or `string[]` | Yes | One recipient or a list of up to 50 |
+| `subject` | `string` | Yes | Subject line |
+| `html` | `string` | One of `html` or `text` | HTML body |
+| `text` | `string` | One of `html` or `text` | Plain-text body |
+| `tags` | `string[]` | No | Up to 5 tags for filtering events |
+
+**Returns:** `Promise<{ messageId: string, status: 'queued' }>`
+
+## get
+
+Looks up a message by ID.
+
+```js JavaScript
+client.messages.get(messageId)
+```
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `messageId` | `string` | Yes | The ID returned by `send()` |
+
+**Returns:** `Promise<{ messageId: string, status: 'queued' | 'sent' | 'delivered' | 'bounced' }>`

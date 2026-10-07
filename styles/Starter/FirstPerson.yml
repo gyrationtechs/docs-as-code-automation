@@ -1,0 +1,9 @@
+extends: existence
+message: "Avoid first person ('%s'). Write in the second person."
+level: warning
+ignorecase: true
+tokens:
+  - \bwe\b
+  - \bour\b
+  - \bus\b
+  - \bwe'll\b

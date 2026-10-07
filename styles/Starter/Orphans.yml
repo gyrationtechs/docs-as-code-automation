@@ -1,0 +1,9 @@
+extends: existence
+message: "'%s' breaks when an agent retrieves this section alone. Name the thing or link to it."
+level: warning
+ignorecase: true
+tokens:
+  - as mentioned (?:above|earlier|before)
+  - see (?:above|below)
+  - the previous step
+  - like we did

@@ -1,0 +1,21 @@
+{
+  "name": "docs-automation-starter",
+  "private": true,
+  "type": "module",
+  "description": "Workshop starter: an AI docs pipeline that turns product changes into reviewed docs PRs.",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "docs:context": "node pipeline/context.mjs",
+    "docs:gates": "node pipeline/gates/run-all.mjs",
+    "docs:update": "node pipeline/run.mjs",
+    "docs:dev": "cd docs && npx mint@latest dev",
+    "docs:links": "cd docs && npx mint@latest broken-links",
+    "agent-score": "node pipeline/agent-score.mjs",
+    "demo:change": "git apply demo/scheduled-send.patch && git --no-pager diff --stat",
+    "demo:reset": "git checkout -- . && git clean -fd docs product && rm -rf .pipeline"
+  },
+  "dependencies": {
+    "@mdx-js/mdx": "3.1.0",
+    "remark-gfm": "4.0.1"
+  }
+}

@@ -1,0 +1,15 @@
+extends: existence
+message: "Remove '%s'. It adds no information and reads as AI filler."
+level: error
+ignorecase: true
+tokens:
+  - simply
+  - easily
+  - seamless(?:ly)?
+  - effortless(?:ly)?
+  - powerful
+  - robust
+  - leverage
+  - delve
+  - in order to
+  - as well as

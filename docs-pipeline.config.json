@@ -1,0 +1,24 @@
+{
+  "productName": "Acme Mail",
+  "platform": "mintlify",
+  "mainBranch": "main",
+  "sourceDir": "product/src",
+  "sourceExtensions": [".js", ".ts"],
+  "productManifest": "product/package.json",
+  "docsDir": "docs",
+  "changelog": "docs/changelog.mdx",
+  "editable": ["docs/introduction.mdx", "docs/quickstart.mdx", "docs/guides/", "docs/sdk/"],
+  "denied": ["docs/docs.json", "product/", "pipeline/gates/", "pipeline/prompts/", "pipeline/lib/", ".github/", ".claude/", "styles/", ".vale.ini"],
+  "fenceLanguages": ["js", "javascript", "ts", "typescript"],
+  "docsUrl": "https://your-site.mintlify.app",
+  "platformNotes": {
+    "mintlify": [
+      "Use the Mintlify components the page already uses: <Note>, <Warning>, <CodeGroup>, <Steps>.",
+      "Changelog entries use <Update label=\"YYYY-MM-DD\" description=\"vX.Y.Z\">, indented two spaces inside."
+    ],
+    "docusaurus": [
+      "Use admonitions for callouts: :::note, :::warning, :::tip.",
+      "Group language variants with <Tabs> and <TabItem> imported from @theme/Tabs and @theme/TabItem."
+    ]
+  }
+}

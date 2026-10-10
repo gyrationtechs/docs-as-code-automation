@@ -8,10 +8,10 @@ keywords: ["messages", "send", "get", "sdk reference"]
 
 ## send
 
-Sends an email and returns once the message is queued.
+Sends an email and returns once the message is queued or scheduled.
 
 ```js JavaScript
-client.messages.send({ from, to, subject, html, text, tags })
+client.messages.send({ from, to, subject, html, text, tags, scheduledAt })
 ```
 
 | Parameter | Type | Required | Description |
@@ -22,8 +22,28 @@ client.messages.send({ from, to, subject, html, text, tags })
 | `html` | `string` | One of `html` or `text` | HTML body |
 | `text` | `string` | One of `html` or `text` | Plain-text body |
 | `tags` | `string[]` | No | Up to 5 tags for filtering events |
+| `scheduledAt` | `string` or `Date` | No | Send later: an ISO 8601 timestamp or `Date`, at least 1 minute and at most 72 hours from now |
 
-**Returns:** `Promise<{ messageId: string, status: 'queued' }>`
+**Returns:** `Promise<{ messageId: string, status: 'queued' | 'scheduled' }>`
+
+The SDK throws an error if `scheduledAt` is not a valid date or is outside the 1 minute to 72 hour window.
+
+## cancel
+
+Cancels a scheduled message before it is sent.
+
+```js JavaScript
+client.messages.cancel(messageId)
+```
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `messageId` | `string` | Yes | The ID returned by `send()` with `scheduledAt` |
+
+**Returns:** `Promise<{ messageId: string, status: 'canceled' }>`
+
+If the send time has passed, `cancel()` throws an `AcmeMailError` with status `409` and code `already_sent`.
+{/* VERIFY: the API returns status 409 with code `already_sent` when you cancel a message whose send time has passed */}
 
 ## get
 
@@ -37,4 +57,4 @@ client.messages.get(messageId)
 |---|---|---|---|
 | `messageId` | `string` | Yes | The ID returned by `send()` |
 
-**Returns:** `Promise<{ messageId: string, status: 'queued' | 'sent' | 'delivered' | 'bounced' }>`
+**Returns:** `Promise<{ messageId: string, status: 'scheduled' | 'queued' | 'sent' | 'delivered' | 'bounced' | 'canceled' }>`

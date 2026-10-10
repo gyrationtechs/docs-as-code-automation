@@ -64,6 +64,58 @@ await client.messages.send({
 });
 ```
 
+## Schedule an Email
+
+Pass `scheduledAt` to send a message later. It accepts an ISO 8601 timestamp or a `Date` between 1 minute and 72 hours from now.
+
+**Prerequisites:** the SDK is installed and `ACME_MAIL_API_KEY` is set. See the [quickstart](/quickstart).
+
+```js JavaScript
+import { AcmeMail } from '@acme/mail';
+
+const client = new AcmeMail(process.env.ACME_MAIL_API_KEY);
+
+const inOneHour = new Date(Date.now() + 60 * 60 * 1000);
+
+const { messageId, status } = await client.messages.send({
+  from: 'you@example.com',
+  to: 'friend@example.com',
+  subject: 'Your trial ends soon',
+  text: 'Your trial ends tomorrow.',
+  scheduledAt: inOneHour,
+});
+```
+
+A successful call returns a `messageId` and a `status` of `scheduled`. Keep the `messageId` so you can cancel the message later.
+
+<Note>
+The SDK throws an error before it calls the API if `scheduledAt` is not a valid date or is outside the 1 minute to 72 hour window.
+</Note>
+
+## Cancel a Scheduled Email
+
+Call `client.messages.cancel()` with the `messageId` that `send()` returned for a scheduled message.
+
+**Prerequisites:** a message sent with `scheduledAt` whose send time has not passed.
+
+```js JavaScript
+import { AcmeMail, AcmeMailError } from '@acme/mail';
+
+const client = new AcmeMail(process.env.ACME_MAIL_API_KEY);
+
+try {
+  const { status } = await client.messages.cancel('YOUR_MESSAGE_ID');
+  console.log(status);
+} catch (error) {
+  if (error instanceof AcmeMailError && error.code === 'already_sent') {
+    console.error('The message was already sent.');
+  }
+}
+```
+
+A successful call returns the `messageId` and a `status` of `canceled`. If the send time has passed, the call throws an `AcmeMailError` with status `409` and code `already_sent`.
+{/* VERIFY: the API returns status 409 with code `already_sent` when you cancel a message whose send time has passed */}
+
 ## Handle Errors
 
 Failed requests throw an `AcmeMailError` with the HTTP `status` and an API error `code`.
